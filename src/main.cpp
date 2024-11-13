@@ -261,6 +261,17 @@ class NaviBall
   }
 
   /***************************************************************************************************/
+  void drawWindText() {
+    cairo_set_font_size (cr, 20.0);
+    cairo_select_font_face (cr, "Georgia", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL /*CAIRO_FONT_WEIGHT_BOLD*/);
+
+    cairo_translate(cr, centerX, centerY);
+
+    drawText("18.3", 0, -50, 0.0);
+    
+  }
+
+  /***************************************************************************************************/
   void drawAWAIndicator() {
     double width = 26;
     double height = 50;
@@ -281,8 +292,71 @@ class NaviBall
     cairo_identity_matrix(cr); //Reset the CTM
   }
 
-  void Draw()
-  {
+  /* Simple example to use pangocairo to render rotated text */
+
+  void draw_text () {
+    #define RADIUS 200
+    #define N_WORDS 8
+    #define FONT_WITH_MANUAL_SIZE "Times new roman,Sans"
+    #define FONT_SIZE 36
+    #define DEVICE_DPI 72
+
+    /* The following number applies a cairo CTM.  Tests for
+    * https://bugzilla.gnome.org/show_bug.cgi?id=700592
+    */
+    #define TWEAKABLE_SCALE ((double) 0.1)
+
+    PangoLayout *layout;
+    PangoFontDescription *desc;
+    int i;
+
+    /* Center coordinates on the middle of the region we are drawing
+    */
+    cairo_translate (cr, RADIUS / TWEAKABLE_SCALE, RADIUS / TWEAKABLE_SCALE);
+
+    /* Create a PangoLayout, set the font and text */
+    layout = pango_cairo_create_layout (cr);
+
+    pango_layout_set_text (layout, "Test\nسَلام", -1);
+
+    desc = pango_font_description_from_string (FONT_WITH_MANUAL_SIZE);
+    pango_font_description_set_absolute_size(desc, FONT_SIZE * DEVICE_DPI * PANGO_SCALE / (72.0 * TWEAKABLE_SCALE));
+    //pango_font_description_set_size(desc, 27 * PANGO_SCALE / TWEAKABLE_SCALE);
+
+    printf("PANGO_SCALE = %d\n", PANGO_SCALE);
+    pango_layout_set_font_description (layout, desc);
+    pango_font_description_free (desc);
+
+    /* Draw the layout N_WORDS times in a circle */
+    for (i = 0; i < N_WORDS; i++)
+      {
+        int width, height;
+        double angle = (360. * i) / N_WORDS;
+        double red;
+
+        cairo_save (cr);
+
+        /* Gradient from red at angle == 60 to blue at angle == 240 */
+        red   = (1 + cos ((angle - 60) * G_PI / 180.)) / 2;
+        cairo_set_source_rgb (cr, red, 0, 1.0 - red);
+
+        cairo_rotate (cr, angle * G_PI / 180.);
+
+        /* Inform Pango to re-layout the text with the new transformation */
+        pango_cairo_update_layout (cr, layout);
+
+        pango_layout_get_size (layout, &width, &height);
+        cairo_move_to (cr,( - (((double)width) / PANGO_SCALE) / 2.0) , (- RADIUS)  / TWEAKABLE_SCALE);
+        pango_cairo_show_layout (cr, layout);
+
+        cairo_restore (cr);
+      }
+
+    /* free the layout object */
+    g_object_unref (layout);
+  }
+
+  void Draw() {
     /* Set color for background */
     cairo_set_source_rgb(cr, 0, 0, 0);
     /* fill in the background color*/
@@ -292,6 +366,7 @@ class NaviBall
     drawAWAText();
     drawHeadingText();
     drawAWAIndicator();
+    draw_text();
   }
 };
 
