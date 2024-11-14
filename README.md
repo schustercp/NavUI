@@ -38,3 +38,13 @@ fc-cache -f -v
 fc-list
 ```
 Verify that Genos - Medium is in the list.
+
+## To build this software
+You will need the normal gcc toolchain and cmake installed
+Create a build folder under the NavUI folder.
+```
+cd build
+cmake ../
+make
+```
+
