@@ -8,9 +8,16 @@
   sudo apt-get install blackbox
   sudo apt-get install xterm
   sudo apt-get install lightdm
+  sudo apt-get install gtk+-3.0
 ```
 
 ## Copy your SSH key over so you will be able to SSH in with out a password.
 ```
   ssh-copy-id -i ~/.ssh/mykey user@host
+```
+
+## To add the HyperPixel Display add one of the following to the config.txt in /boot/firmware
+```
+Rectangular: dtoverlay=vc4-kms-dpi-hyperpixel4
+Square: dtoverlay=vc4-kms-dpi-hyperpixel4sq
 ```
