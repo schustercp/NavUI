@@ -21,3 +21,12 @@
 Rectangular: dtoverlay=vc4-kms-dpi-hyperpixel4
 Square: dtoverlay=vc4-kms-dpi-hyperpixel4sq
 ```
+
+## Add Expected Fonts to the RaspberryPi
+Copy Genos-VariableFont_wght.ttf from the fonts folder to /usr/share/fonts
+Then run
+```
+fc-cache -f -v
+fc-list
+```
+Verify that Genos - Medium is in the list.
