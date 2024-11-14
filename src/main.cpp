@@ -292,65 +292,231 @@ class NaviBall
     cairo_identity_matrix(cr); //Reset the CTM
   }
 
-  /* Simple example to use pangocairo to render rotated text */
+/***************************************************************************************************/
+  PangoFontDescription* createFontDescription(const char* familyName, const char* faceName) {
+    
+    PangoFontFamily ** families;
+    int n_families;
+    PangoFontFamily * family = NULL;
+    PangoFontMap* fontmap = pango_cairo_font_map_get_default();
+    pango_font_map_list_families (fontmap, &families, &n_families);
+    for(int q = 0; q < n_families; q++)
+    {
+      family = families[q];
+      const char * family_name = pango_font_family_get_name (family);
+      if(strcmp(familyName, family_name) == 0)
+      {
+        PangoFontFace** faces;
+        int n_faces = 0;
+        pango_font_family_list_faces (family, &faces, &n_faces);
+        for (int w = 0; w < n_faces; w++) 
+        {
+          PangoFontFace* face = faces[w];
+          const char * face_name = pango_font_face_get_face_name(face);
+          if(strcmp(faceName, face_name) == 0)
+          {
+            return pango_font_face_describe(face);
+          }
+        }
+      }
+    }
 
+    return NULL;
+  }
+
+  /* Simple example to use pangocairo to render rotated text */
+  /***************************************************************************************************/
   void draw_text () {
-    #define RADIUS 200
-    #define N_WORDS 8
     #define FONT_WITH_MANUAL_SIZE "Times new roman,Sans"
-    #define FONT_SIZE 36
-    #define DEVICE_DPI 72
+    #define FONT_SIZE 16
+    #define DEVICE_DPI 175
 
     /* The following number applies a cairo CTM.  Tests for
     * https://bugzilla.gnome.org/show_bug.cgi?id=700592
     */
-    #define TWEAKABLE_SCALE ((double) 0.1)
+    #define TWEAKABLE_SCALE ((double) 1.0)
 
     PangoLayout *layout;
-    PangoFontDescription *desc;
-    int i;
 
     /* Center coordinates on the middle of the region we are drawing
     */
-    cairo_translate (cr, RADIUS / TWEAKABLE_SCALE, RADIUS / TWEAKABLE_SCALE);
+    cairo_translate (cr, centerX, centerY);
 
     /* Create a PangoLayout, set the font and text */
     layout = pango_cairo_create_layout (cr);
 
-    pango_layout_set_text (layout, "Test\nسَلام", -1);
+    pango_layout_set_text (layout, "25.8°", -1);
 
-    desc = pango_font_description_from_string (FONT_WITH_MANUAL_SIZE);
-    pango_font_description_set_absolute_size(desc, FONT_SIZE * DEVICE_DPI * PANGO_SCALE / (72.0 * TWEAKABLE_SCALE));
-    //pango_font_description_set_size(desc, 27 * PANGO_SCALE / TWEAKABLE_SCALE);
+    GError** error = NULL;
+    PangoAttrList* attr_list = NULL;
+    gunichar* accel_char = NULL;
+    char* resultTest = NULL;
 
-    printf("PANGO_SCALE = %d\n", PANGO_SCALE);
-    pango_layout_set_font_description (layout, desc);
-    pango_font_description_free (desc);
+    double AWA = 25.8;
+    double AWS = 8.2;
+    double Depth = 186.2;
+    double STW = AWS / 2.0;
 
-    /* Draw the layout N_WORDS times in a circle */
-    for (i = 0; i < N_WORDS; i++)
-      {
-        int width, height;
-        double angle = (360. * i) / N_WORDS;
-        double red;
+    uint32_t AWA_IntegerPart = uint32_t(AWA);
+    // uint32_t AWA_fractionalPart = uint32_t((AWA - double(AWA_IntegerPart)) * 10.0);
 
-        cairo_save (cr);
+    char markup_text[256];
+    int width, height;
+    double textY = -230;
 
-        /* Gradient from red at angle == 60 to blue at angle == 240 */
-        red   = (1 + cos ((angle - 60) * G_PI / 180.)) / 2;
-        cairo_set_source_rgb (cr, red, 0, 1.0 - red);
+    PangoFontDescription* fontDescription = createFontDescription("Genos", "Medium");
+    pango_font_description_set_absolute_size(fontDescription, FONT_SIZE * DEVICE_DPI * PANGO_SCALE / (72.0 * TWEAKABLE_SCALE));
+    pango_layout_set_font_description(layout, fontDescription);
 
-        cairo_rotate (cr, angle * G_PI / 180.);
+    /*************************************************************/
+    snprintf(markup_text, 256, "<span foreground=\"white\" size=\"x-large\">%u</span><span foreground=\"white\" size=\"medium\">°</span>", AWA_IntegerPart);
+    
+    if( FALSE == pango_parse_markup(markup_text, -1, 0, &attr_list, &resultTest, accel_char, error))
+    {
+      printf("pango_parse_markup has an error.\n");
+    }
 
-        /* Inform Pango to re-layout the text with the new transformation */
-        pango_cairo_update_layout (cr, layout);
+    pango_layout_set_attributes(layout, attr_list);
+    pango_layout_set_text(layout, resultTest, -1);
 
-        pango_layout_get_size (layout, &width, &height);
-        cairo_move_to (cr,( - (((double)width) / PANGO_SCALE) / 2.0) , (- RADIUS)  / TWEAKABLE_SCALE);
-        pango_cairo_show_layout (cr, layout);
+    cairo_save(cr);
+    /* Inform Pango to re-layout the text with the new transformation */
+    pango_cairo_update_layout(cr, layout);
+    pango_layout_get_size(layout, &width, &height);
+    cairo_move_to(cr,( - (((double)width) / PANGO_SCALE) / 2.0) , textY);
+    pango_cairo_show_layout(cr, layout);
+    cairo_restore(cr);
 
-        cairo_restore (cr);
-      }
+    /*************************************************************/
+    if( FALSE == pango_parse_markup("<span foreground=\"white\" size=\"x-small\">AWA</span>", -1, 0, &attr_list, &resultTest, accel_char, error))
+    {
+      printf("pango_parse_markup has an error.\n");
+    }
+
+    pango_layout_set_attributes(layout, attr_list);
+    pango_layout_set_text(layout, resultTest, -1);
+
+    cairo_save(cr);
+    /* Inform Pango to re-layout the text with the new transformation */
+    pango_cairo_update_layout(cr, layout);
+    pango_layout_get_size(layout, &width, &height);
+    cairo_move_to(cr,( - (((double)width) / PANGO_SCALE) / 2.0) , textY + 50);
+    pango_cairo_show_layout(cr, layout);
+    cairo_restore(cr);
+
+    /*************************************************************/
+    uint32_t AWS_IntegerPart = uint32_t(AWS);
+    uint32_t AWS_fractionalPart = uint32_t((AWS - double(AWS_IntegerPart)) * 10.0);
+    snprintf(markup_text, 256, "<span foreground=\"white\" size=\"x-large\">%u.</span><span foreground=\"white\" size=\"medium\">%u</span><span foreground=\"white\" size=\"xx-small\"> kt</span>", AWS_IntegerPart, AWS_fractionalPart);
+    if( FALSE == pango_parse_markup(markup_text, -1, 0, &attr_list, &resultTest, accel_char, error))
+    {
+      printf("pango_parse_markup has an error.\n");
+    }
+
+    pango_layout_set_attributes(layout, attr_list);
+    pango_layout_set_text(layout, resultTest, -1);
+
+    cairo_save(cr);
+    /* Inform Pango to re-layout the text with the new transformation */
+    pango_cairo_update_layout(cr, layout);
+    pango_layout_get_size(layout, &width, &height);
+    cairo_move_to(cr,( - (((double)width) / PANGO_SCALE) / 2.0) , textY + 80);
+    pango_cairo_show_layout(cr, layout);
+    cairo_restore(cr);
+
+    /*************************************************************/
+    if( FALSE == pango_parse_markup("<span foreground=\"white\" size=\"x-small\">AWS</span>", -1, 0, &attr_list, &resultTest, accel_char, error))
+    {
+      printf("pango_parse_markup has an error.\n");
+    }
+
+    pango_layout_set_attributes(layout, attr_list);
+    pango_layout_set_text(layout, resultTest, -1);
+
+    cairo_save(cr);
+    /* Inform Pango to re-layout the text with the new transformation */
+    pango_cairo_update_layout(cr, layout);
+    pango_layout_get_size(layout, &width, &height);
+    cairo_move_to(cr,( - (((double)width) / PANGO_SCALE) / 2.0) , textY + 80 + 50);
+    pango_cairo_show_layout(cr, layout);
+    cairo_restore(cr);
+
+    /*************************************************************/
+    uint32_t Depth_IntegerPart = uint32_t(Depth);
+    uint32_t Depth_fractionalPart = uint32_t((Depth - double(Depth_IntegerPart)) * 10.0);
+    snprintf(markup_text, 256, "<span foreground=\"white\" size=\"x-large\">%u.</span><span foreground=\"white\" size=\"medium\">%u</span><span foreground=\"white\" size=\"xx-small\"> ft</span>", Depth_IntegerPart, Depth_fractionalPart);
+    if( FALSE == pango_parse_markup(markup_text, -1, 0, &attr_list, &resultTest, accel_char, error))
+    {
+      printf("pango_parse_markup has an error.\n");
+    }
+
+    pango_layout_set_attributes(layout, attr_list);
+    pango_layout_set_text(layout, resultTest, -1);
+
+    cairo_save(cr);
+    /* Inform Pango to re-layout the text with the new transformation */
+    pango_cairo_update_layout(cr, layout);
+    pango_layout_get_size(layout, &width, &height);
+    cairo_move_to(cr,( - (((double)width) / PANGO_SCALE) / 2.0) , textY + 275);
+    pango_cairo_show_layout(cr, layout);
+    cairo_restore(cr);
+
+    /*************************************************************/
+    if( FALSE == pango_parse_markup("<span foreground=\"white\" size=\"x-small\">Depth</span>", -1, 0, &attr_list, &resultTest, accel_char, error))
+    {
+      printf("pango_parse_markup has an error.\n");
+    }
+
+    pango_layout_set_attributes(layout, attr_list);
+    pango_layout_set_text(layout, resultTest, -1);
+
+    cairo_save(cr);
+    /* Inform Pango to re-layout the text with the new transformation */
+    pango_cairo_update_layout(cr, layout);
+    pango_layout_get_size(layout, &width, &height);
+    cairo_move_to(cr,( - (((double)width) / PANGO_SCALE) / 2.0) , textY + 275 + 50);
+    pango_cairo_show_layout(cr, layout);
+    cairo_restore(cr);
+
+    /*************************************************************/
+    uint32_t STW_IntegerPart = uint32_t(STW);
+    uint32_t STW_fractionalPart = uint32_t((STW - double(STW_IntegerPart)) * 10.0);
+    snprintf(markup_text, 256, "<span foreground=\"white\" size=\"x-large\">%u.</span><span foreground=\"white\" size=\"medium\">%u</span><span foreground=\"white\" size=\"xx-small\"> kt</span>", STW_IntegerPart, STW_fractionalPart);
+    if( FALSE == pango_parse_markup(markup_text, -1, 0, &attr_list, &resultTest, accel_char, error))
+    {
+      printf("pango_parse_markup has an error.\n");
+    }
+
+    pango_layout_set_attributes(layout, attr_list);
+    pango_layout_set_text(layout, resultTest, -1);
+
+    cairo_save(cr);
+    /* Inform Pango to re-layout the text with the new transformation */
+    pango_cairo_update_layout(cr, layout);
+    pango_layout_get_size(layout, &width, &height);
+    cairo_move_to(cr,( - (((double)width) / PANGO_SCALE) / 2.0) , textY + 350);
+    pango_cairo_show_layout(cr, layout);
+    cairo_restore(cr);
+
+    /*************************************************************/
+    if( FALSE == pango_parse_markup("<span foreground=\"white\" size=\"x-small\">STW</span>", -1, 0, &attr_list, &resultTest, accel_char, error))
+    {
+      printf("pango_parse_markup has an error.\n");
+    }
+
+    pango_layout_set_attributes(layout, attr_list);
+    pango_layout_set_text(layout, resultTest, -1);
+
+    cairo_save(cr);
+    /* Inform Pango to re-layout the text with the new transformation */
+    pango_cairo_update_layout(cr, layout);
+    pango_layout_get_size(layout, &width, &height);
+    cairo_move_to(cr,( - (((double)width) / PANGO_SCALE) / 2.0) , textY + 350 + 50);
+    pango_cairo_show_layout(cr, layout);
+    cairo_restore(cr);
+
+    /*************************************************************/
+    pango_font_description_free(fontDescription);
 
     /* free the layout object */
     g_object_unref (layout);
@@ -431,6 +597,44 @@ gboolean timer_exe(GtkWidget * window)
   gtk_widget_queue_draw_area(window, 0, 0, 720, 720);
 
   return TRUE;
+}
+
+/***************************************************************************************************/
+static void list_fonts() {
+    PangoFontFamily ** families;
+    int n_families;
+
+    PangoFontMap* fontmap = pango_cairo_font_map_get_default();
+    pango_font_map_list_families (fontmap, & families, &n_families);
+    printf ("There are %d families\n", n_families);
+    for (int i = 0; i < n_families; i++) 
+    {
+      PangoFontFamily * family = families[i];
+      const char * family_name;
+
+      family_name = pango_font_family_get_name (family);
+      printf ("Family %d: %s\n", i, family_name);
+
+      PangoFontFace** faces;
+      int n_faces = 0;
+
+      pango_font_family_list_faces (family, &faces, &n_faces);
+      printf ("  There are %d faces\n", n_faces);
+      for (int j = 0; j < n_faces; j++) 
+      {
+        PangoFontFace* face = faces[j];
+        const char * face_name = pango_font_face_get_face_name (face);
+        printf ("  Face %d: %s\n", j, face_name);
+      }
+
+      // pango_font_describe()
+      // pango_font_describe_with_absolute_size()
+      // pango_font_face_describe()
+      //PangoFontDescription* pango_font_face_describe(PangoFontFace* face);
+
+      // void pango_cairo_font_map_set_resolution (PangoCairoFontMap* fontmap,double dpi)
+    }
+    g_free (families);
 }
 
 /***************************************************************************************************/
